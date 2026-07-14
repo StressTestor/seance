@@ -1,0 +1,26 @@
+# Rust
+/target
+**/target
+Cargo.lock.bak
+
+# Node / frontend
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+
+# Tauri build output
+/src-tauri/target
+/src-tauri/gen
+
+# Editor / OS
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# seance runtime state (written to the OS app-data dir at runtime, never the repo)
+*.seance-state.json

@@ -1,0 +1,99 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Fast, platform-neutral gate for the correctness core + the read-only guard.
+  core:
+    name: core (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: fmt (seance-core)
+        run: cargo fmt -p seance-core --check
+      - name: clippy (seance-core)
+        run: cargo clippy -p seance-core --all-targets -- -D warnings
+      - name: test (seance-core)
+        run: cargo test -p seance-core
+      - name: structural read-only guard
+        # The log-reading pipeline must NEVER write to the filesystem. It may only
+        # open logs read-only (File::open) + stat them; any write/create/truncate/
+        # remove/rename/link vector breaks the read-only guarantee. Robustness:
+        #   - the test module (which legitimately creates fixtures) is stripped by
+        #     cutting at the `mod tests` line — NOT at the first `#[cfg(test)]`, so
+        #     a stray cfg(test) attribute can't blind the scan.
+        #   - comment lines are dropped so prose ("truncated") never false-matches.
+        #   - `write!`/`writeln!` are intentionally NOT in the pattern: they target
+        #     a Formatter in Display impls, not a File; a real file write must first
+        #     obtain a handle via File::create / OpenOptions / File::options, which
+        #     ARE matched.
+        run: |
+          set -e
+          fail=0
+          strip() { awk '/^[[:space:]]*mod tests[[:space:]{]/{exit} {print}' "$1" | grep -vE '^[[:space:]]*//'; }
+          # Core pipeline: must be entirely free of filesystem writes.
+          strict='OpenOptions|File::create|File::options|fs::write|fs::create_dir|create_dir_all|create_dir\(|create_new|\.truncate\(|set_len\(|remove_file|remove_dir|fs::rename|\.rename\(|fs::copy|symlink|hard_link|set_permissions|write_all'
+          for f in crates/seance-core/src/tail.rs crates/seance-core/src/rotation.rs \
+                   crates/seance-core/src/records.rs crates/seance-core/src/join.rs \
+                   crates/seance-core/src/model.rs; do
+            if strip "$f" | grep -nE "$strict"; then
+              echo "::error file=$f::forbidden filesystem-write op in the log-reading pipeline"
+              fail=1
+            fi
+          done
+          # src-tauri log-access layer: may create its OWN app-data state dir
+          # (create_dir* allowed here), but must never open a LOG file for writing.
+          lib='OpenOptions|File::create|File::options|fs::write|create_new|\.truncate\(|set_len\(|remove_file|remove_dir|fs::rename|\.rename\(|fs::copy|symlink|hard_link|set_permissions|write_all'
+          if strip src-tauri/src/lib.rs | grep -nE "$lib"; then
+            echo "::error file=src-tauri/src/lib.rs::forbidden log-file write op"
+            fail=1
+          fi
+          if [ "$fail" -ne 0 ]; then
+            echo "structural read-only guard FAILED"
+            exit 1
+          fi
+          echo "read-only guard: log-reading pipeline is write-free ✔"
+
+  # The full desktop app: frontend + Tauri, built and gated on macOS.
+  app:
+    name: app (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "."
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: install frontend deps
+        run: npm ci
+      - name: build frontend
+        # tsc typecheck + vite build -> ../dist, which generate_context!() embeds.
+        run: npm run build
+      - name: fmt
+        run: cargo fmt --all --check
+      - name: clippy (workspace)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: build (workspace)
+        run: cargo build --workspace
+      - name: test (workspace)
+        run: cargo test --workspace

@@ -1,0 +1,832 @@
+/* séance — occult / punk observability. Dark-first. Hand-authored, no framework.
+ * Palette + motion from the design spec. Every color is real; every glyph is
+ * unicode/system; the grimoire texture is a data-URI SVG (CSP-safe, no fetch).
+ * Note: the display face is the system-serif fallback stack — we bundle no
+ * remote font (CSP forbids font CDNs and we ship zero binary assets). */
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces (violet-black, layered) */
+  --seance-void: #08070a;
+  --seance-crypt: #0e0c12;
+  --seance-slab: #16131c;
+  --seance-slab-raised: #1e1a26;
+  --seance-altar: #241f2e;
+
+  /* structure */
+  --seance-hairline: #221e2a;
+  --seance-etch: #2e2838;
+  --seance-inset: #050409;
+
+  /* text ramp (bone -> ash -> smoke) */
+  --seance-bone: #ede6d8;
+  --seance-ash: #9a9187;
+  --seance-smoke: #6b6560;
+  --seance-faint: #423e48;
+
+  /* ritual semantics */
+  --seance-ember: #ff5c4d;
+  --seance-blood: #7e1620;
+  --seance-spectral: #4e9e7b;
+  --seance-toxic: #c4f92e;
+  --seance-sulfur: #e8a33d;
+
+  /* category accents */
+  --cat-cred-access: #e7c15a;
+  --cat-pipe-to-shell: #9b7bff;
+  --cat-destructive: #ff7a3d;
+  --cat-persistence: #3fb5b0;
+  --cat-network-exfil: #4fc2ff;
+  --cat-unknown: #a99db5;
+
+  /* glows */
+  --glow-ember: rgba(255, 92, 77, 0.55);
+  --glow-spectral: rgba(78, 158, 123, 0.4);
+  --glow-toxic: rgba(196, 249, 46, 0.65);
+
+  --seance-focus: #b78bff;
+
+  --font-display: "Hoefler Text", "Iowan Old Style", Palatino, Georgia, serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  --font-label: "Avenir Next Condensed", "SF Compact Text", var(--font-ui);
+  --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Code", monospace;
+
+  --r-chip: 4px;
+  --r-row: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+/* The [hidden] attribute must always win, even over our flex/display rules
+ * (used to collapse row bodies and to filter rows). */
+[hidden] {
+  display: none !important;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+body {
+  background: var(--seance-void);
+  color: var(--seance-bone);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.grimoire {
+  background-color: var(--seance-crypt);
+  background-image: radial-gradient(120% 100% at 50% -10%, rgba(120, 100, 160, 0.06), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+}
+
+/* ── presence header ── */
+.presence-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--seance-hairline);
+  flex: 0 0 auto;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.tagline {
+  color: var(--seance-ash);
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.presence {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, #2a2438 0%, #14111c 60%, #0b0910 100%);
+  box-shadow: 0 0 18px 2px rgba(120, 100, 160, 0.25), inset 0 0 12px rgba(0, 0, 0, 0.6);
+  animation: presence-breathe 4.2s ease-in-out infinite, presence-flicker 7s steps(1, end) infinite;
+}
+@keyframes presence-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+}
+@keyframes presence-flicker {
+  0%,
+  40%,
+  43%,
+  68%,
+  100% {
+    filter: brightness(1);
+  }
+  41% {
+    filter: brightness(0.72);
+  }
+  42% {
+    filter: brightness(1.12);
+  }
+  66% {
+    filter: brightness(0.8);
+  }
+  67% {
+    filter: brightness(1.05);
+  }
+}
+.presence.flare-deny {
+  animation: flare-deny 640ms cubic-bezier(0.2, 0.9, 0.15, 1) 1;
+}
+@keyframes flare-deny {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 18px 2px rgba(120, 100, 160, 0.25);
+  }
+  14% {
+    transform: scale(1.35);
+    box-shadow: 0 0 44px 10px var(--glow-ember), 0 0 8px 2px rgba(255, 255, 255, 0.13);
+    filter: brightness(1.4) hue-rotate(-6deg);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 18px 2px rgba(120, 100, 160, 0.25);
+  }
+}
+.presence.flare-warn {
+  animation: flare-warn 520ms ease-out 1;
+}
+@keyframes flare-warn {
+  0%,
+  100% {
+    box-shadow: 0 0 18px 2px rgba(120, 100, 160, 0.25);
+  }
+  30% {
+    box-shadow: 0 0 30px 6px rgba(232, 163, 61, 0.5);
+  }
+}
+.presence.ripple-pass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--seance-spectral);
+  animation: ripple-pass 520ms ease-out 1;
+}
+@keyframes ripple-pass {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+.presence.alarm-bypass {
+  animation: alarm-bypass 900ms steps(1, end) 1;
+}
+@keyframes alarm-bypass {
+  0%,
+  33%,
+  66% {
+    box-shadow: 0 0 40px 12px var(--glow-toxic);
+    filter: brightness(1.6);
+  }
+  16%,
+  50%,
+  83% {
+    box-shadow: 0 0 10px 2px transparent;
+    filter: brightness(0.8);
+  }
+  100% {
+    box-shadow: 0 0 18px 2px rgba(120, 100, 160, 0.25);
+    filter: none;
+  }
+}
+
+.frame-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+.frame-vignette.deny {
+  animation: vignette-blood 640ms ease-out 1;
+}
+@keyframes vignette-blood {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+  18% {
+    box-shadow: inset 0 0 120px 8px var(--glow-ember);
+  }
+}
+
+.counters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.counter-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 54px;
+  padding: 6px 10px;
+  background: var(--seance-slab);
+  border: 1px solid var(--seance-hairline);
+  border-radius: var(--r-chip);
+}
+.count {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  line-height: 1;
+}
+.count.deny {
+  color: var(--seance-ember);
+}
+.count.roast {
+  color: var(--seance-bone);
+}
+.count.bypass {
+  color: var(--seance-toxic);
+}
+.count.loose {
+  color: var(--seance-smoke);
+}
+.counter-label {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 9px;
+  color: var(--seance-ash);
+  margin-top: 4px;
+}
+.counter-chip.live-alarm {
+  border-color: var(--seance-toxic);
+  box-shadow: 0 0 12px var(--glow-toxic);
+}
+.tailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  color: var(--seance-ash);
+  font-size: 12px;
+}
+.tailing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--seance-faint);
+}
+.tailing-dot.live {
+  background: var(--seance-spectral);
+  box-shadow: 0 0 8px var(--glow-spectral);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ── filter bar ── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--seance-hairline);
+  flex: 0 0 auto;
+}
+.chip-row,
+.cat-row,
+.selects {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.fchip {
+  font-family: var(--font-label);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  font-size: 12px;
+  color: var(--seance-ash);
+  background: var(--seance-slab);
+  border: 1px solid var(--seance-hairline);
+  border-radius: var(--r-chip);
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.fchip:hover {
+  color: var(--seance-bone);
+}
+.fchip.active {
+  color: var(--seance-bone);
+  background: var(--seance-altar);
+  border-color: var(--seance-etch);
+}
+.fchip[data-verdict="deny"].active {
+  border-color: var(--seance-ember);
+  color: var(--seance-ember);
+}
+.fchip[data-verdict="pass"].active {
+  border-color: var(--seance-spectral);
+  color: var(--seance-spectral);
+}
+.fchip.alarm.active {
+  border-color: var(--seance-toxic);
+  color: var(--seance-toxic);
+  box-shadow: 0 0 8px var(--glow-toxic);
+}
+.cat-toggle {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 9px;
+  color: var(--seance-smoke);
+  background: transparent;
+  border: 1px solid var(--seance-hairline);
+  border-radius: 999px;
+  padding: 4px 9px 4px 20px;
+  cursor: pointer;
+  position: relative;
+}
+.cat-toggle::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent, var(--seance-faint));
+}
+.cat-toggle[data-category="cred-access"] {
+  --accent: var(--cat-cred-access);
+}
+.cat-toggle[data-category="pipe-to-shell"] {
+  --accent: var(--cat-pipe-to-shell);
+}
+.cat-toggle[data-category="destructive"] {
+  --accent: var(--cat-destructive);
+}
+.cat-toggle[data-category="persistence"] {
+  --accent: var(--cat-persistence);
+}
+.cat-toggle[data-category="network-exfil"] {
+  --accent: var(--cat-network-exfil);
+}
+.cat-toggle[data-category="unknown"] {
+  --accent: var(--cat-unknown);
+}
+.cat-toggle.active {
+  color: var(--seance-bone);
+  border-color: var(--accent);
+}
+.fselect {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--seance-ash);
+  background: var(--seance-slab);
+  border: 1px solid var(--seance-hairline);
+  border-radius: var(--r-chip);
+  padding: 5px 8px;
+  max-width: 200px;
+}
+.search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--seance-bone);
+  background: var(--seance-inset);
+  border: 1px solid var(--seance-hairline);
+  border-radius: var(--r-chip);
+  padding: 7px 12px;
+}
+.search::placeholder {
+  color: var(--seance-faint);
+}
+:focus-visible {
+  outline: 2px solid var(--seance-focus);
+  outline-offset: 1px;
+}
+
+/* ── timeline ── */
+.timeline {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 0 40px;
+}
+.day-divider {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  color: var(--seance-smoke);
+  padding: 18px 24px 8px;
+}
+
+.row {
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--seance-hairline);
+  --accent: var(--seance-faint);
+}
+.row[data-category="cred-access"] {
+  --accent: var(--cat-cred-access);
+}
+.row[data-category="pipe-to-shell"] {
+  --accent: var(--cat-pipe-to-shell);
+}
+.row[data-category="destructive"] {
+  --accent: var(--cat-destructive);
+}
+.row[data-category="persistence"] {
+  --accent: var(--cat-persistence);
+}
+.row[data-category="network-exfil"] {
+  --accent: var(--cat-network-exfil);
+}
+.row[data-category="unknown"] {
+  --accent: var(--cat-unknown);
+}
+.row[data-verdict="deny"] {
+  border-left-color: var(--seance-ember);
+  background: var(--seance-slab);
+}
+.row[data-verdict="pass"] {
+  border-left-color: var(--seance-spectral);
+}
+.row.loose {
+  border-left: 3px dashed var(--seance-faint);
+  opacity: 0.82;
+}
+.row.bypass {
+  border-left-color: var(--seance-toxic);
+  animation: row-strobe 1.4s ease-in-out 3;
+}
+@keyframes row-strobe {
+  0%,
+  100% {
+    box-shadow: inset 3px 0 0 var(--seance-toxic), 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: inset 3px 0 0 var(--seance-toxic), 0 0 16px var(--glow-toxic);
+  }
+}
+
+.row-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 11px 24px;
+  cursor: pointer;
+}
+.row-header:hover {
+  background: var(--seance-slab-raised);
+}
+.gutter {
+  width: 18px;
+  text-align: center;
+  color: var(--seance-smoke);
+  flex: 0 0 auto;
+}
+.row[data-verdict="deny"] .gutter::before {
+  content: "💀";
+}
+.row[data-verdict="pass"] .gutter::before {
+  content: "·";
+}
+.row.loose .gutter::before {
+  content: "◌";
+}
+.row.bypass .gutter::before {
+  content: "⚠";
+}
+
+.chip {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--r-chip);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.chip[data-verdict="deny"] {
+  color: var(--seance-ember);
+  background: rgba(126, 22, 32, 0.35);
+}
+.chip[data-verdict="pass"] {
+  color: var(--seance-spectral);
+  background: transparent;
+}
+.chip[data-verdict="loose"] {
+  color: var(--seance-smoke);
+}
+.bypass-chip {
+  color: var(--seance-void);
+  background: var(--seance-toxic);
+}
+
+.row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tool {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--seance-ash);
+  flex: 0 0 auto;
+}
+.cat-badge {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 10px;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.cat-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.preview {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--seance-bone);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.row[data-verdict="pass"] .preview {
+  color: var(--seance-ash);
+}
+.time {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--seance-smoke);
+  flex: 0 0 auto;
+}
+.chevron {
+  color: var(--seance-smoke);
+  flex: 0 0 auto;
+  transition: transform 0.14s;
+}
+.row-header.expanded .chevron {
+  transform: rotate(90deg);
+}
+
+/* ── expanded body ── */
+.row-body {
+  padding: 4px 24px 18px 54px;
+  background: var(--seance-slab-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.detail-label {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10px;
+  color: var(--seance-smoke);
+  margin-bottom: 4px;
+}
+.roast {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--seance-bone);
+  margin: 0;
+  padding: 8px 14px;
+  border-left: 2px solid var(--accent);
+}
+.rule-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: baseline;
+}
+.rule {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--seance-sulfur);
+}
+.reason {
+  font-size: 13px;
+  color: var(--seance-ash);
+}
+
+.shadow-block {
+  border: 1px solid var(--seance-hairline);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.shadow-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.shadow-table th {
+  text-align: left;
+  color: var(--seance-smoke);
+  font-weight: 400;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+}
+.shadow-table td {
+  padding: 3px 8px;
+  border-top: 1px solid var(--seance-hairline);
+  color: var(--seance-ash);
+}
+.probe.bypass td {
+  color: var(--seance-toxic);
+}
+.probe .flag {
+  font-weight: 600;
+}
+
+.post-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.post-leg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+.post-action {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: var(--seance-sulfur);
+}
+.post-reason {
+  color: var(--seance-ash);
+}
+.post-rule {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--seance-smoke);
+}
+.post-note {
+  font-size: 13px;
+  font-style: italic;
+}
+.post-note.expected {
+  color: var(--seance-smoke);
+  border-bottom: 1px dotted var(--seance-faint);
+  align-self: flex-start;
+}
+.post-note.awaiting {
+  color: var(--seance-sulfur);
+}
+.post-resolved {
+  animation: post-resolved 800ms ease-out 1;
+}
+@keyframes post-resolved {
+  0% {
+    background: rgba(232, 163, 61, 0.14);
+  }
+  100% {
+    background: var(--seance-slab-raised);
+  }
+}
+
+.mono-block {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--seance-bone);
+  background: var(--seance-inset);
+  border: 1px solid var(--seance-hairline);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--seance-ash);
+  text-align: center;
+  padding: 80px 24px;
+}
+.empty-orb {
+  font-size: 42px;
+  color: var(--seance-faint);
+  animation: presence-breathe 4.2s ease-in-out infinite;
+}
+.empty-sub {
+  font-size: 12px;
+  color: var(--seance-smoke);
+  font-style: italic;
+  max-width: 420px;
+}
+
+/* ── reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .presence,
+  .presence::after,
+  .empty-orb,
+  .tailing-dot.live,
+  .row.bypass,
+  .frame-vignette.deny,
+  .post-resolved {
+    animation: none !important;
+  }
+  .presence.flare-deny {
+    box-shadow: 0 0 24px 4px var(--glow-ember);
+  }
+  .presence.alarm-bypass {
+    box-shadow: 0 0 24px 6px var(--glow-toxic);
+  }
+}
+
+/* ── light-mode note (dark-first; a minimal, legible inversion) ── */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --seance-void: #f4efe4;
+  --seance-crypt: #ebe4d5;
+  --seance-slab: #e2d9c7;
+  --seance-slab-raised: #d9cfba;
+  --seance-altar: #cfc3a9;
+  --seance-hairline: #d0c6b2;
+  --seance-etch: #b8ab90;
+  --seance-inset: #efe9dc;
+  --seance-bone: #1a1620;
+  --seance-ash: #4a4550;
+  --seance-smoke: #6b6560;
+  --seance-faint: #a99f92;
+  --seance-ember: #c4322b;
+  --seance-blood: #e7c9c4;
+  --seance-spectral: #2e6b4f;
+  --seance-toxic: #5f7d00;
+  --seance-sulfur: #9a6a12;
+}

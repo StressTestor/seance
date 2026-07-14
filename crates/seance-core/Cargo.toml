@@ -1,0 +1,17 @@
+[package]
+name = "seance-core"
+description = "Pure tail/rotation/join engine for the seance observability app. No I/O beyond std::fs reads; no Tauri, no watcher — so the whole correctness core is unit-testable anywhere."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

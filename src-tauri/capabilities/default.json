@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "seance main window: listen for backend-emitted log events and call the two read-only commands the app exposes (backfill = snapshot of the joined timeline; status = which log files exist + skipped-line count). No fs plugin, no shell, no http, no dialog, no updater — the webview has zero file API surface. All file access is backend-owned std::fs reads (see src/lib.rs), so a compromised webview cannot read, write, or enumerate any file; it can only receive the records the backend chose to emit.",
+  "local": true,
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}
