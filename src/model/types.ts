@@ -84,14 +84,22 @@ export interface SeanceBatch {
 export type Verdict = "deny" | "pass" | "loose";
 
 export function verdictOf(ev: SeanceEvent): Verdict {
-  if (ev.kind === "loose") return "loose";
+  // The security decision (deny vs pass) read from whichever leg carries it.
+  // This is ORTHOGONAL to whether the event could be joined: a loose (unjoined)
+  // event still has a real decision on its ghost/sentinel leg and must report it
+  // — otherwise, on an install whose sentinel/ghost predate the id fields, every
+  // denial correlates to nothing and silently reads as neither deny nor pass
+  // (the denied counter stuck at 0 while the log is full of blocks). Joined-ness
+  // is a separate axis, tracked via ev.kind === "loose" at the render layer.
   const g = ev.ghost?.decision;
   if (g === "deny") return "deny";
   if (g === "pass") return "pass";
-  // No ghost leg (rare: ghost log rotated away): fall back to the pre action.
-  const a = ev.pre?.action;
+  // No ghost leg: fall back to the sentinel leg's action (pre for a governing
+  // call, the lone sentinel leg for a loose one).
+  const a = ev.kind === "governing" ? ev.pre?.action : ev.sentinel?.action;
   if (a === "block") return "deny";
-  return "pass";
+  if (a) return "pass"; // allow / warn / detect — evaluated, not blocked
+  return "loose"; // no decision-bearing leg at all (a degenerate/empty call)
 }
 
 /** Whether a shadow bypass was found on this event (the alarm state). Shadow

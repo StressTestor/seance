@@ -312,6 +312,12 @@ body {
   box-shadow: 0 0 8px var(--glow-spectral);
   animation: pulse-dot 2s ease-in-out infinite;
 }
+/* Both logs present but nothing correlates (ids absent): reading live, but the
+   join is dark — amber, not the healthy spectral green. */
+.tailing-dot.dark {
+  background: var(--seance-ember);
+  box-shadow: 0 0 8px var(--seance-ember);
+}
 @keyframes pulse-dot {
   0%,
   100% {
@@ -567,6 +573,11 @@ body {
 }
 .chip[data-verdict="loose"] {
   color: var(--seance-smoke);
+}
+.unjoined-chip {
+  color: var(--seance-smoke);
+  border: 1px dashed var(--seance-faint);
+  opacity: 0.85;
 }
 .bypass-chip {
   color: var(--seance-void);
