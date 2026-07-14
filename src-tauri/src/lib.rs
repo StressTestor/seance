@@ -199,53 +199,45 @@ fn spawn_watch_loop(app: AppHandle, shared: Shared) {
         }
     };
 
-    // Keep the watcher alive for the life of the loop by moving it into the thread.
-    enum AnyWatcher {
-        Native(RecommendedWatcher),
-        Poll(PollWatcher),
-    }
-
-    let watcher: Option<AnyWatcher> = (|| {
+    // A keep-alive handle for whichever backend won. Boxed as `Any` because the
+    // two watcher types differ and we only need to hold it alive (RAII) for the
+    // thread's lifetime — never read it. `None` means neither backend started;
+    // the wall-clock timer still drives polling.
+    let watcher: Option<Box<dyn std::any::Any + Send>> = (|| {
         // Try the native backend first (FSEvents / inotify).
-        match RecommendedWatcher::new(make_handler(tx.clone()), Config::default()) {
-            Ok(mut w) => {
-                let mut ok = true;
-                for d in &dirs {
-                    if w.watch(d, RecursiveMode::NonRecursive).is_err() {
-                        ok = false;
-                        break;
-                    }
-                }
-                if ok {
-                    return Some(AnyWatcher::Native(w));
+        if let Ok(mut w) = RecommendedWatcher::new(make_handler(tx.clone()), Config::default()) {
+            let mut ok = true;
+            for d in &dirs {
+                if w.watch(d, RecursiveMode::NonRecursive).is_err() {
+                    ok = false;
+                    break;
                 }
             }
-            Err(_) => {}
+            if ok {
+                return Some(Box::new(w) as Box<dyn std::any::Any + Send>);
+            }
         }
         // Fallback: PollWatcher re-stats on an interval (size/mtime only).
         let cfg = Config::default()
             .with_poll_interval(POLL_INTERVAL)
             .with_compare_contents(false);
-        match PollWatcher::new(make_handler(tx.clone()), cfg) {
-            Ok(mut w) => {
-                for d in &dirs {
-                    let _ = w.watch(d, RecursiveMode::NonRecursive);
-                }
-                Some(AnyWatcher::Poll(w))
+        if let Ok(mut w) = PollWatcher::new(make_handler(tx.clone()), cfg) {
+            for d in &dirs {
+                let _ = w.watch(d, RecursiveMode::NonRecursive);
             }
-            Err(_) => None, // no watcher; the wall-clock timer still drives polling
+            return Some(Box::new(w) as Box<dyn std::any::Any + Send>);
         }
+        None
     })();
 
     std::thread::spawn(move || {
-        let _keep_alive = watcher; // dropped when the thread ends
-                                   // Keep a Sender alive independently of the watcher. If watcher
-                                   // construction returned None (native AND poll both failed), the only
-                                   // other Senders — the ones cloned into the watcher handlers — never
-                                   // existed, so without this the channel would be Disconnected on the very
-                                   // first recv and the loop would exit, silently freezing the wall-clock
-                                   // fallback. Holding `tx` here means Disconnected can't happen; the timer
-                                   // path keeps polling regardless of the watcher.
+        // Hold the watcher (RAII) AND a Sender for the thread's life. The Sender
+        // matters when watcher construction returned None (native AND poll both
+        // failed): the only other Senders live inside the watcher handlers, so
+        // without this the channel would be Disconnected on the first recv and the
+        // loop would exit — silently freezing the wall-clock fallback. Holding `tx`
+        // means Disconnected can't happen; the timer keeps polling regardless.
+        let _keep_alive = watcher;
         let _keep_tx = tx;
         loop {
             // Wake on a fs event OR every POLL_INTERVAL, whichever first. A
