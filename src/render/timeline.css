@@ -1,0 +1,418 @@
+/* timeline.css — structure/layout for the virtualized timeline tab.
+ * Heights are load-bearing: --seance-row-h / --seance-drawer-h (styles.css)
+ * must stay in lockstep with ROW_H / DET_H in timeline.ts — the windowing is
+ * pure arithmetic on them. Data-driven color (verdict/category accents, row
+ * treatments, chip active states) is set inline by timeline.ts via setStyles,
+ * riding custom properties (--row-bg, --chip-*, --cc-*) so :hover here keeps
+ * precedence. Everything static lives in this file. Keyframes strobe-row and
+ * row-land come from styles.css — not redefined here. */
+
+.tl-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ── filter bar ────────────────────────────────────────────── */
+.tl-filterbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--seance-line);
+  background: var(--seance-panel);
+  flex: 0 0 auto;
+}
+.tl-chipgroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.tl-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  clip-path: var(--seance-clip-chip);
+  cursor: pointer;
+  color: var(--chip-c, var(--seance-smoke));
+  background: var(--chip-bg, var(--seance-panel-raised));
+  border: 1px solid var(--chip-bc, var(--seance-line));
+  box-shadow: var(--chip-glow, none);
+}
+.tl-chip:hover {
+  color: var(--seance-ink);
+  border-color: var(--seance-hex);
+}
+
+/* category toggles: 15px diamonds, multi-select */
+.tl-cat {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  flex: 0 0 auto;
+  transform: rotate(45deg);
+  cursor: pointer;
+  background: var(--cc-fill, transparent);
+  border: 1px solid var(--cc-bc, #2e2838);
+  box-shadow: var(--cc-glow, none);
+}
+.tl-cat:hover {
+  border-color: var(--cc, var(--seance-hex));
+}
+
+.tl-tool {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--seance-smoke);
+  background: var(--seance-panel-raised);
+  border: 1px solid var(--seance-line);
+  padding: 4px 8px;
+  max-width: 140px;
+  flex: 0 0 auto;
+}
+
+.tl-search {
+  flex: 1 1 180px;
+  min-width: 140px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--seance-ink);
+  background: var(--seance-void);
+  border: 1px solid var(--seance-line);
+  padding: 6px 10px;
+}
+.tl-search:focus {
+  outline: none;
+  border-color: var(--seance-hex);
+  box-shadow: 0 0 10px rgba(255, 46, 136, 0.2);
+}
+.tl-search::placeholder {
+  color: var(--seance-ink-dim);
+}
+
+.tl-shown {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--seance-faint-slab);
+  flex: 0 0 auto;
+}
+
+/* ── the windowed list ─────────────────────────────────────── */
+.tl-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--seance-void);
+}
+.tl-spacer {
+  flex: 0 0 auto;
+}
+
+/* ── row (24px fixed — the windowing arithmetic depends on it) ── */
+.tl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--seance-row-h);
+  padding: 0 14px;
+  border-bottom: 1px solid var(--seance-line-faint);
+  background: var(--row-bg, transparent);
+  cursor: pointer;
+}
+.tl-row:hover {
+  background: #1e1a26;
+  box-shadow: inset 2px 0 0 var(--seance-hex);
+}
+
+.tl-glyph {
+  width: 15px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--seance-ink-dim);
+  flex: 0 0 auto;
+}
+.tl-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--seance-ink-dim);
+  width: 58px;
+  flex: 0 0 auto;
+}
+.tl-verdict {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  width: 48px;
+  flex: 0 0 auto;
+}
+.tl-bypchip {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #08070a;
+  background: var(--seance-toxic);
+  clip-path: var(--seance-clip-chip);
+  padding: 1px 7px;
+  flex: 0 0 auto;
+  box-shadow: var(--seance-glow-toxic);
+}
+.tl-toolcell {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--seance-smoke);
+  width: 56px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-catdot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  transform: rotate(45deg);
+}
+.tl-cmd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-roastprev {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 11.5px;
+  color: var(--seance-ink-dim);
+  max-width: 270px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-join {
+  font-size: 10px;
+  width: 12px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+/* ── expanded detail drawer (224px fixed, its own scroll) ───── */
+.tl-drawer {
+  height: var(--seance-drawer-h);
+  overflow-y: auto;
+  border-bottom: 1px solid var(--seance-line);
+  background: var(--seance-drawer);
+  box-shadow: inset 0 0 40px rgba(155, 123, 255, 0.05);
+  padding: 10px 20px 10px 34px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 6px 20px;
+  align-content: start;
+}
+.tl-det-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.tl-det-join {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--seance-faint-slab);
+}
+.tl-det-joinmark {
+  flex: 0 0 auto;
+}
+.tl-det-ids {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.tl-det-roast {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--seance-ink);
+  margin: 0;
+  padding: 6px 14px;
+}
+.tl-det-rule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: baseline;
+}
+.tl-det-rule code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--seance-rule-amber);
+}
+.tl-det-rule span {
+  font-size: 12px;
+  color: var(--seance-smoke);
+}
+.tl-det-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 9px;
+  color: var(--seance-ink-dim);
+}
+.tl-det-post {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tl-postleg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.tl-postleg-action {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  color: var(--seance-rule-amber);
+}
+.tl-postleg-reason {
+  color: var(--seance-smoke);
+}
+.tl-postleg-rule {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--seance-ink-dim);
+}
+.tl-postnote {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--seance-ink-dim);
+  border-bottom: 1px dotted var(--seance-faint-slab);
+  align-self: flex-start;
+}
+.tl-det-pre {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--seance-ink);
+  background: var(--seance-void);
+  border: 1px solid var(--seance-line);
+  padding: 10px;
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.tl-shadow {
+  border: 1px solid var(--seance-line);
+  padding: 8px 10px;
+}
+.tl-shadow-h {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 9px;
+  margin-bottom: 5px;
+}
+.tl-probe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 0;
+  border-top: 1px solid var(--seance-line-faint);
+}
+.tl-probe-mut {
+  color: var(--seance-smoke);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-probe-flag {
+  font-weight: 600;
+  width: 64px;
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+/* ── empty filtered state ──────────────────────────────────── */
+.tl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 80px 20px;
+}
+.tl-empty-orb {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  color: var(--seance-faint-slab);
+  letter-spacing: 0.1em;
+}
+.tl-empty-msg {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--seance-ink-dim);
+  letter-spacing: 0.08em;
+}
+.tl-clear {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--seance-hex);
+  background: transparent;
+  border: 1px solid rgba(255, 46, 136, 0.5);
+  clip-path: var(--seance-clip-chip);
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.tl-clear:hover {
+  background: rgba(255, 46, 136, 0.1);
+  box-shadow: var(--seance-glow-hex);
+}
+
+/* ── footer ────────────────────────────────────────────────── */
+.tl-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 16px;
+  border-top: 1px solid var(--seance-line);
+  background: var(--seance-panel);
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--seance-faint-slab);
+}
+.tl-foot-count b {
+  color: var(--seance-hex);
+}
+.tl-foot-hints {
+  color: var(--seance-ink-dim);
+}
+.tl-foot-note {
+  margin-left: auto;
+  font-style: italic;
+}

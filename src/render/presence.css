@@ -1,0 +1,144 @@
+/* The presence — orb assembly, LED face, roast line (redesign v3).
+ * Structure + static styling only. Data-driven color (face state, LAST
+ * verdict) and size-driven values (box width/height, face font-size) are set
+ * inline from presence.ts. Keyframes live in styles.css — none redefined
+ * here. Inner insets (0 / 6px / 12px / 24px) are fixed regardless of the
+ * assembly size, matching the reference at every orb size it ships. */
+
+.presence-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── orb assembly (hero) ───────────────────────────────────── */
+.presence-orb-box {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* outer dashed halo — slow 90s spin */
+.presence-halo {
+  position: absolute;
+  inset: 0;
+  border: 1px dashed #2e2838;
+  border-radius: 50%;
+  animation: halo-spin 90s linear infinite;
+  transition: border-color 1.2s;
+}
+
+/* partial conic arcs, masked down to a 2px ring */
+.presence-arc {
+  position: absolute;
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(circle, transparent 0 calc(50% - 2px), #000 calc(50% - 1px));
+  mask: radial-gradient(circle, transparent 0 calc(50% - 2px), #000 calc(50% - 1px));
+  pointer-events: none;
+}
+.presence-arc--hex {
+  inset: 6px;
+  background: conic-gradient(from 0deg, transparent 0 78%, rgba(255, 46, 136, 0.55) 86%, transparent 92%);
+  animation: halo-spin-rev 14s linear infinite;
+}
+.presence-arc--violet {
+  inset: 12px;
+  background: conic-gradient(from 180deg, transparent 0 60%, rgba(155, 123, 255, 0.4) 72%, transparent 80%);
+  animation: halo-spin 22s linear infinite;
+}
+
+/* hidden pass-ripple ring — presence.ts plays ripple-pass on it */
+.presence-ripple {
+  position: absolute;
+  inset: 24px;
+  border: 1px solid var(--seance-spectral);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* the orb itself — idle animation string is set inline (ORB_BASE) so event
+ * one-shots can be layered on and the base restored afterwards */
+.presence-orb {
+  position: absolute;
+  inset: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #322a48 0%, #171221 55%, #0b0910 100%);
+  box-shadow: 0 0 40px 8px rgba(155, 123, 255, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+/* ── LED face ──────────────────────────────────────────────── */
+.presence-face {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  pointer-events: none;
+}
+.presence-face--hero {
+  inset: 24px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 8px currentColor, 0 0 26px currentColor;
+  animation: led-blink 5s steps(1, end) infinite;
+}
+.presence-face--mini {
+  inset: 0;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 5px currentColor;
+}
+
+/* ── mini orb (header, timeline tab) ───────────────────────── */
+.presence-mini {
+  position: relative;
+  flex: 0 0 auto;
+}
+.presence-orb--mini {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, #2f2842 0%, #14111c 60%, #0b0910 100%);
+  box-shadow: 0 0 12px 3px rgba(155, 123, 255, 0.35), inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+/* ── caption under the hero orb ────────────────────────────── */
+.presence-caption {
+  text-align: center;
+}
+.presence-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--seance-ink-dim);
+}
+.presence-last {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-top: 4px;
+  text-shadow: 0 0 8px currentColor;
+}
+
+/* typed roast — ghost's voice, serif italic, blinking magenta cursor */
+.presence-roast-wrap {
+  margin-top: 6px;
+  max-width: 340px;
+  min-height: 30px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.presence-roast-line {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--seance-roast-ink);
+  text-align: center;
+}
+.presence-cursor {
+  color: var(--seance-hex);
+  animation: pulse-dot 1s steps(1, end) infinite;
+}

@@ -1,64 +1,54 @@
-// Client-side filtering over the in-memory events. Filtering toggles row
-// visibility (the [hidden] attribute) — it never rebuilds rows and never drops
-// events from the store, so clearing a filter instantly reveals full history.
+// Timeline filter state + a compiled predicate over the flat event shape.
+// Filtering runs on DATA (a linear pass producing a filtered array the window
+// renders from) — never by toggling visibility on live DOM nodes, which was the
+// old design's sluggishness. Search matches command/roast/tool/rule/reason/cat.
+// "bypass" is a verdict-slot shortcut for "a shadow probe evaded sentinel";
+// "loose" filters on joined-ness. Categories are any-of (multi-select).
 
-import type { SeanceEvent, SentinelAction } from "../model/types";
-import { hasBypass, verdictOf } from "../model/types";
+import type { FlatEvent } from "../model/view";
+
+export type VerdictFilter = "deny" | "pass" | "loose" | "bypass" | null;
 
 export interface FilterState {
-  verdict?: "deny" | "pass" | "loose"; // the top-level state chips
-  tool?: string;
-  action?: SentinelAction;
-  categories?: string[]; // any-of; empty/undefined = all
-  matchedRule?: string;
-  bypassOnly: boolean;
-  text: string; // free-text, case-insensitive substring
+  verdict: VerdictFilter;
+  cats: string[];
+  tool: string;
+  text: string;
 }
 
 export function emptyFilter(): FilterState {
-  return { bypassOnly: false, text: "" };
+  return { verdict: null, cats: [], tool: "", text: "" };
 }
 
-/** Compile a predicate once per filter change; reuse across all rows. */
-export function compile(s: FilterState): (ev: SeanceEvent) => boolean {
-  const needle = s.text.trim().toLowerCase();
-  return (ev) => {
-    const g = ev.ghost;
-    const sen = ev.kind === "governing" ? ev.pre : ev.sentinel;
+export function isEmptyFilter(f: FilterState): boolean {
+  return f.verdict === null && f.cats.length === 0 && f.tool === "" && f.text.trim() === "";
+}
 
-    // "loose" is a joined-ness axis (ev.kind), not a verdict; deny/pass read
-    // the decision. Keeping them separate is what lets a loose deny still count
-    // and filter as a deny.
-    if (s.verdict === "loose") {
-      if (ev.kind !== "loose") return false;
-    } else if (s.verdict && verdictOf(ev) !== s.verdict) {
+/** Compile a predicate once per filter change; reuse it across the linear scan. */
+export function compile(f: FilterState): (e: FlatEvent) => boolean {
+  const needle = f.text.trim().toLowerCase();
+  return (e) => {
+    if (f.verdict === "bypass") {
+      if (!e.bypass) return false;
+    } else if (f.verdict && e.verdict !== f.verdict) {
       return false;
     }
-    if (s.bypassOnly && !hasBypass(ev)) return false;
-    if (s.tool && (g?.tool ?? sen?.toolName) !== s.tool) return false;
-    if (s.action && sen?.action !== s.action) return false;
-    if (s.categories && s.categories.length && !s.categories.includes(g?.category ?? "")) {
-      return false;
-    }
-    if (s.matchedRule && sen?.matchedRule !== s.matchedRule) return false;
-
+    if (f.cats.length && !f.cats.includes(e.cat)) return false;
+    if (f.tool && e.tool !== f.tool) return false;
     if (needle) {
-      const post = ev.kind === "governing" ? ev.post : [];
-      const hay = [
-        g?.command,
-        g?.roast,
-        g?.tool,
-        g?.category,
-        sen?.reason,
-        sen?.matchedRule,
-        sen?.toolName,
-        sen?.action,
-        ...post.map((p) => p.reason),
-        ...post.map((p) => p.matchedRule),
-      ]
-        .filter(Boolean)
-        .join("")
-        .toLowerCase();
+      const hay = (
+        e.command +
+        " " +
+        (e.roast ?? "") +
+        " " +
+        e.tool +
+        " " +
+        (e.rule ?? "") +
+        " " +
+        (e.reason ?? "") +
+        " " +
+        e.cat
+      ).toLowerCase();
       if (!hay.includes(needle)) return false;
     }
     return true;
