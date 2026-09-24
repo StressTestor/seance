@@ -82,12 +82,13 @@ function mount(): void {
 
   // ── data wiring ──
   const store = new Store();
-  const tally = { denies: 0, roasts: 0, bypass: 0, loose: 0 };
+  const tally = { denies: 0, roasts: 0, bypass: 0, loose: 0, governing: 0 };
 
   function recount(): void {
-    tally.denies = tally.roasts = tally.bypass = tally.loose = 0;
+    tally.denies = tally.roasts = tally.bypass = tally.loose = tally.governing = 0;
     for (const ev of store.all()) {
       if (ev.kind === "loose") tally.loose++;
+      else tally.governing++;
       if (verdictOf(ev) === "deny") tally.denies++;
       if (ev.ghost?.roast) tally.roasts++;
       if (hasBypass(ev)) tally.bypass++;
@@ -134,8 +135,8 @@ function mount(): void {
       timeline.seed(seed);
       recount();
     }
-    refreshStatus(tailingDot, statusLine);
-    window.setInterval(() => refreshStatus(tailingDot, statusLine), 4000);
+    refreshStatus(tailingDot, statusLine, tally);
+    window.setInterval(() => refreshStatus(tailingDot, statusLine, tally), 4000);
   });
 }
 
@@ -143,24 +144,34 @@ function counterChip(value: HTMLElement, label: string): HTMLElement {
   return el("div", { class: "counter-chip" }, value, el("span", { class: "counter-label" }, label));
 }
 
-async function refreshStatus(dot: HTMLElement, line: HTMLElement): Promise<void> {
+async function refreshStatus(
+  dot: HTMLElement,
+  line: HTMLElement,
+  tally: { governing: number; loose: number },
+): Promise<void> {
   const s = await fetchStatus();
   if (!s) {
-    dot.classList.remove("live");
+    dot.classList.remove("live", "dark");
     clear(line);
     line.appendChild(txt("standalone (no backend) — design preview"));
     return;
   }
   const both = s.sentinelExists && s.ghostExists;
-  dot.classList.toggle("live", both);
+  // Correlation is "dark" when both logs exist and carry events but NOTHING has
+  // joined — typically because the installed sentinel/ghost predate the
+  // call_id/tool_use_id fields, so the timeline is real yet 100% unjoined.
+  // Report what we observe (no correlated calls), not the inferred cause, and
+  // don't paint a healthy green dot over a non-functional join.
+  const dark = both && tally.governing === 0 && tally.loose > 0;
+  dot.classList.toggle("live", both && !dark);
+  dot.classList.toggle("dark", dark);
   clear(line);
   const skipped = s.skipped > 0 ? ` · ${s.skipped} skipped` : "";
+  const src = `${s.sentinelExists ? "sentinel" : "sentinel(absent)"} · ${
+    s.ghostExists ? "ghost" : "ghost(absent)"
+  }`;
   line.appendChild(
-    txt(
-      `${s.sentinelExists ? "sentinel" : "sentinel(absent)"} · ${
-        s.ghostExists ? "ghost" : "ghost(absent)"
-      } · tailing${skipped}`,
-    ),
+    txt(dark ? `${src} · no correlated calls (ids absent?)${skipped}` : `${src} · tailing${skipped}`),
   );
 }
 

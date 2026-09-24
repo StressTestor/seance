@@ -26,7 +26,14 @@ export function compile(s: FilterState): (ev: SeanceEvent) => boolean {
     const g = ev.ghost;
     const sen = ev.kind === "governing" ? ev.pre : ev.sentinel;
 
-    if (s.verdict && verdictOf(ev) !== s.verdict) return false;
+    // "loose" is a joined-ness axis (ev.kind), not a verdict; deny/pass read
+    // the decision. Keeping them separate is what lets a loose deny still count
+    // and filter as a deny.
+    if (s.verdict === "loose") {
+      if (ev.kind !== "loose") return false;
+    } else if (s.verdict && verdictOf(ev) !== s.verdict) {
+      return false;
+    }
     if (s.bypassOnly && !hasBypass(ev)) return false;
     if (s.tool && (g?.tool ?? sen?.toolName) !== s.tool) return false;
     if (s.action && sen?.action !== s.action) return false;

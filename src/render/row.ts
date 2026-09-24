@@ -129,6 +129,9 @@ export function buildRow(ev: SeanceEvent): HTMLElement {
     { class: "row-header", "aria-expanded": "false", title: "expand" },
     el("span", { class: "gutter", "aria-hidden": "true" }),
     verdictChip(ev),
+    // Joined-ness is its own axis: a loose event still shows its real verdict
+    // chip above, plus this marker so an unjoined deny reads as both.
+    ev.kind === "loose" ? el("span", { class: "chip unjoined-chip" }, "◌ UNJOINED") : null,
     bypass ? el("span", { class: "chip bypass-chip" }, "☓ BYPASS") : null,
     el(
       "span",
