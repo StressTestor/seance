@@ -50,3 +50,13 @@ function append(parent: Node, c: Child): void {
 export function clear(node: Node): void {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
+
+/** Set inline styles from TRUSTED, computed values only — bar heights, widths,
+ * aggregate-derived colors, animation strings. NEVER pass agent-authored text
+ * (command / roast / reason) through here: those are content, not style, and
+ * belong in a text node via txt(). Keys are CSS property names (kebab-case) or
+ * custom properties (`--w`); values are strings or numbers. */
+export function setStyles(node: HTMLElement, styles: Record<string, string | number>): HTMLElement {
+  for (const [k, v] of Object.entries(styles)) node.style.setProperty(k, String(v));
+  return node;
+}
