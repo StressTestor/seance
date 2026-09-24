@@ -30,6 +30,10 @@ export function compile(f: FilterState): (e: FlatEvent) => boolean {
   return (e) => {
     if (f.verdict === "bypass") {
       if (!e.bypass) return false;
+    } else if (f.verdict === "loose") {
+      // joined-ness, not the decision: a loose deny must still match "loose"
+      // (and "deny" below), so key off the flag rather than e.verdict.
+      if (!e.loose) return false;
     } else if (f.verdict && e.verdict !== f.verdict) {
       return false;
     }

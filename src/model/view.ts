@@ -14,7 +14,9 @@ import { hasBypass, verdictOf } from "./types";
 export interface FlatEvent {
   key: string;
   tsMs: number;
-  verdict: Verdict; // deny | pass | loose
+  // deny | pass read from the ghost/sentinel leg, joined or not; "loose" here only
+  // means no decision-bearing leg at all. Ask `loose` below whether it joined.
+  verdict: Verdict;
   bypass: boolean; // a shadow probe evaded sentinel
   loose: boolean; // unjoined — no id to correlate (orthogonal to verdict)
   tool: string;

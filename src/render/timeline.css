@@ -162,6 +162,19 @@
   flex: 0 0 auto;
   box-shadow: var(--seance-glow-toxic);
 }
+/* unjoined (loose) marker: a separate axis from the verdict cell, so a loose
+   deny reads as DENY + UNJOINED. dashed = the same "no join" language as the
+   row's dashed left border. */
+.tl-unjoinchip {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--seance-smoke);
+  border: 1px dashed var(--seance-faint-slab);
+  padding: 0 6px;
+  flex: 0 0 auto;
+}
 .tl-toolcell {
   font-family: var(--font-mono);
   font-size: 11px;

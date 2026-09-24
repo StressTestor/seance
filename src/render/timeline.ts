@@ -303,6 +303,9 @@ export class TimelineView {
         "text-shadow": v === "deny" ? "var(--seance-glow-ember)" : "none",
       }),
       byp ? el("span", { class: "tl-bypchip" }, "☓ BYPASS") : null,
+      // joined-ness is its own axis: an unjoined row keeps its real verdict above
+      // and carries this marker, so a loose deny reads as both.
+      e.loose ? el("span", { class: "tl-unjoinchip" }, "◌ UNJOINED") : null,
       el("span", { class: "tl-toolcell" }, txt(e.tool)),
       setStyles(el("span", { class: "tl-catdot", title: e.cat }), {
         background: dot,
@@ -321,11 +324,12 @@ export class TimelineView {
     );
 
     // Row treatments: governing = solid left border (toxic > ember > muted by
-    // verdict); loose = dashed + faded. Background rides a custom property so
-    // the CSS :hover can still win over it.
+    // verdict); loose = dashed + faded, still colored by its verdict so a loose
+    // deny keeps the ember bar. Background rides a custom property so the CSS
+    // :hover can still win over it.
     const styles: Record<string, string | number> = {
       "border-left": e.loose
-        ? `2px dashed ${FAINT}`
+        ? `2px dashed ${byp ? TOXIC : v === "deny" ? EMBER : FAINT}`
         : `2px solid ${byp ? TOXIC : v === "deny" ? EMBER : "var(--seance-pass-bar)"}`,
       "--row-bg": byp ? "rgba(196, 249, 46, 0.05)" : v === "deny" ? "var(--seance-panel-raised)" : "transparent",
     };
@@ -354,7 +358,7 @@ export class TimelineView {
     const denied = e.verdict === "deny";
 
     const idLine = e.loose
-      ? "no call_id — ghost leg only, nothing to correlate"
+      ? "no call_id — single leg, nothing to correlate"
       : `call_id ${e.callId ?? "?"} :: tool_use_id ${e.toolUseId ?? "?"} :: ghost ⋈ sentinel-pre${
           e.postLegs.length ? ` ⋈ post×${e.postLegs.length}` : ""
         }`;
@@ -389,7 +393,7 @@ export class TimelineView {
       el(
         "div",
         { class: "tl-det-join" },
-        setStyles(el("span", { class: "tl-det-joinmark" }, e.loose ? "◌ LOOSE" : "⋈ JOINED"), {
+        setStyles(el("span", { class: "tl-det-joinmark" }, e.loose ? "◌ UNJOINED" : "⋈ JOINED"), {
           color: e.loose ? INK_DIM : SPECTRAL,
         }),
         el("span", { class: "tl-det-ids" }, txt(idLine)),
